@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
+import OrderTrackingModal from './OrderTrackingModal';
 
 interface Order {
     id: number;
@@ -7,18 +8,79 @@ interface Order {
     orderNumber: string;
     quantity: number;
     status: 'Ongoing' | 'Completed';
+    progress: {
+        engineering: boolean;
+        manufacturing: boolean;
+        quality: boolean;
+        shipping: boolean;
+    };
+    deliveryDetails: {
+        address: string;
+        partNumber: string;
+        quantity: number;
+    };
+    orderSummary: {
+        billingAmount: string;
+        billingDate: string;
+        helpLink: string;
+    };
 }
 
 const OrderHistoryPage: React.FC = () => {
-    // Sample data.
-    const orders: Order[] = [
-        {id: 1, companyCode: 'ABC123', partNumber: 'PN001', orderNumber: 'ORD1001', quantity: 5, status: 'Ongoing'},
-        {id: 2, companyCode: 'XYZ456', partNumber: 'PN002', orderNumber: 'ORD1002', quantity: 3, status: 'Completed'},
-        {id: 3, companyCode: 'LMN789', partNumber: 'PN003', orderNumber: 'ORD1003', quantity: 10, status: 'Ongoing'},
-        {id: 4, companyCode: 'DEF123', partNumber: 'PN004', orderNumber: 'ORD1004', quantity: 2, status: 'Completed'},
-    ];
-
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [filter, setFilter] = useState<'All' | 'Ongoing' | 'Completed'>('All');
+
+    // Sample data including delivery details and order summary
+    const orders: Order[] = [
+        {
+            id: 1,
+            companyCode: 'ABC123',
+            partNumber: 'PN001',
+            orderNumber: 'ORD1001',
+            quantity: 5,
+            status: 'Ongoing',
+            progress: {
+                engineering: true,
+                manufacturing: false,
+                quality: false,
+                shipping: false,
+            },
+            deliveryDetails: {
+                address: '1234 W Connexion Way, Columbia City, IN, USA',
+                partNumber: 'PN001',
+                quantity: 5,
+            },
+            orderSummary: {
+                billingAmount: '$1,000',
+                billingDate: '2024-10-15',
+                helpLink: 'https://support.example.com',
+            },
+        },
+        {
+            id: 2,
+            companyCode: 'XYZ456',
+            partNumber: 'PN002',
+            orderNumber: 'ORD1002',
+            quantity: 3,
+            status: 'Completed',
+            progress: {
+                engineering: true,
+                manufacturing: true,
+                quality: true,
+                shipping: true,
+            },
+            deliveryDetails: {
+                address: '1234 W Connexion Way, Columbia City, IN, USA',
+                partNumber: 'PN002',
+                quantity: 3,
+            },
+            orderSummary: {
+                billingAmount: '$500',
+                billingDate: '2024-09-20',
+                helpLink: 'https://support.example.com',
+            },
+        },
+    ];
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setFilter(e.target.value as 'All' | 'Ongoing' | 'Completed');
@@ -27,11 +89,12 @@ const OrderHistoryPage: React.FC = () => {
     const filteredOrders = filter === 'All' ? orders : orders.filter(order => order.status === filter);
 
     return (
-        <div className="min-h-screen bg-gray-100 pt-8 lg:pt-12 px-4">
-            <h2 className="text-2xl ubuntu-bold mb-4 text-center">Order History</h2>
+        <div className="min-h-screen bg-gray-100 p-6">
+            <h2 className="text-2xl font-bold mb-4 text-center">Order History</h2>
 
-            <div className="sm:max-w-xl lg:max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
-                <div className="mb-4">
+            <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
+                {/* Filter Dropdown */}
+                <div className="mb-4 flex justify-end">
                     <label htmlFor="orderFilter" className="mr-2 font-medium text-gray-700">Filter by Status:</label>
                     <select
                         id="orderFilter"
@@ -45,6 +108,7 @@ const OrderHistoryPage: React.FC = () => {
                     </select>
                 </div>
 
+                {/* Orders Table */}
                 {filteredOrders.length > 0 ? (
                     <table className="w-full table-auto">
                         <thead>
@@ -54,6 +118,7 @@ const OrderHistoryPage: React.FC = () => {
                             <th className="p-2">Order Number</th>
                             <th className="p-2">Quantity</th>
                             <th className="p-2">Status</th>
+                            <th className="p-2">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -64,13 +129,17 @@ const OrderHistoryPage: React.FC = () => {
                                 <td className="p-2">{order.orderNumber}</td>
                                 <td className="p-2">{order.quantity}</td>
                                 <td className="p-2">
-                                    <span
-                                        className={`font-semibold ${
-                                            order.status === 'Completed' ? 'text-green-600' : 'text-yellow-600'
-                                        }`}
+                    <span className={`ubuntu-medium ${order.status === 'Completed' ? 'text-green-500' : 'text-yellow-500'}`}>
+                      {order.status}
+                    </span>
+                                </td>
+                                <td className="p-2">
+                                    <button
+                                        onClick={() => setSelectedOrder(order)}
+                                        className="text-blue-500 hover:underline"
                                     >
-                                    {order.status}
-                                    </span>
+                                        Track Order
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -80,6 +149,17 @@ const OrderHistoryPage: React.FC = () => {
                     <p className="text-center">No orders found for the selected status.</p>
                 )}
             </div>
+
+            {/* Render the Order Tracking Modal if an order is selected */}
+            {selectedOrder && (
+                <OrderTrackingModal
+                    orderNumber={selectedOrder.orderNumber}
+                    progress={selectedOrder.progress}
+                    onClose={() => setSelectedOrder(null)}
+                    deliveryDetails={selectedOrder.deliveryDetails}
+                    orderSummary={selectedOrder.orderSummary}
+                />
+            )}
         </div>
     );
 };
